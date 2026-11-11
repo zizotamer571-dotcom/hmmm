@@ -1,0 +1,783 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Hearts - Interactive Romantic Experience</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for romantic icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05050a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .font-cursive {
+            font-family: 'Dancing Script', cursive;
+        }
+        /* Custom scrollbars for controls modal if needed */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 182, 193, 0.3);
+            border-radius: 10px;
+        }
+        .glass-panel {
+            background: rgba(15, 12, 25, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 105, 180, 0.18);
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(255, 77, 109, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(255, 77, 109, 0.7);
+            transform: translateY(-2px) scale(1.02);
+        }
+        .glow-button:active {
+            transform: translateY(1px) scale(0.98);
+        }
+        /* Heart pulse animation */
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        .pulse-text {
+            animation: subtlePulse 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between min-h-screen text-white">
+
+    <!-- Canvas for Particle Simulation -->
+    <canvas id="heartCanvas" class="absolute inset-0 w-full h-full z-0 cursor-pointer"></canvas>
+
+    <!-- Top Navigation / Controls Overlay -->
+    <header class="relative z-10 flex items-center justify-between p-4 md:p-6 w-full max-w-7xl mx-auto pointer-events-none">
+        <div class="flex items-center space-x-3 pointer-events-auto">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-600 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-500/30">
+                <i class="fa-solid fa-heart text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg md:text-xl font-bold bg-gradient-to-r from-pink-300 via-rose-200 to-red-400 bg-clip-text text-transparent">
+                    Aethel Heart
+                </h1>
+                <p class="text-xs text-pink-300/60 hidden sm:block">Interactive Romantic Canvas</p>
+            </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center space-x-2 md:space-x-3 pointer-events-auto">
+            <button id="audioToggleBtn" title="Toggle Ambient Audio" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-pink-200 hover:text-white hover:bg-pink-500/20 transition-all duration-300">
+                <i id="audioIcon" class="fa-solid fa-volume-xmark"></i>
+            </button>
+            <button id="themeBtn" title="Change Color Palette" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-pink-200 hover:text-white hover:bg-pink-500/20 transition-all duration-300">
+                <i class="fa-solid fa-palette"></i>
+            </button>
+            <button id="settingsBtn" title="Customize Message & Settings" class="glass-panel px-4 h-10 rounded-full flex items-center space-x-2 text-pink-200 hover:text-white hover:bg-pink-500/20 transition-all duration-300 text-sm font-medium">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="hidden md:inline">Settings</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Center Display Text (Appears when assembled) -->
+    <main class="relative z-10 flex flex-col items-center justify-center text-center pointer-events-none px-4 my-auto">
+        <div id="messageContainer" class="transition-all duration-1000 opacity-0 transform translate-y-4 max-w-2xl">
+            <p id="subTitleText" class="text-pink-300/80 text-sm md:text-base uppercase tracking-widest font-semibold mb-2">For My Dearest</p>
+            <h2 id="mainTitleText" class="font-cursive text-4xl sm:text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-rose-100 to-red-300 drop-shadow-[0_5px_15px_rgba(255,105,180,0.4)] pulse-text leading-tight">
+                You Have My Heart
+            </h2>
+            <p id="customMessageText" class="text-pink-100/90 text-sm md:text-lg mt-3 font-light max-w-lg mx-auto">
+                Every beat, every star, every memory belongs to you.
+            </p>
+        </div>
+    </main>
+
+    <!-- Bottom Controls & Interactive Bar -->
+    <footer class="relative z-10 w-full p-4 md:p-6 pointer-events-none">
+        <div class="max-w-md mx-auto flex flex-col items-center space-y-3 pointer-events-auto">
+            <!-- Action Button -->
+            <button id="actionBtn" class="glow-button w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 text-white font-semibold rounded-full flex items-center justify-center space-x-3 text-base shadow-lg cursor-pointer">
+                <i id="actionBtnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
+                <span id="actionBtnText">Form The Heart</span>
+            </button>
+            <p class="text-xs text-pink-200/50 text-center">
+                <span class="hidden sm:inline">Tip: </span>Move cursor or click canvas to create glowing ripple particles
+            </p>
+        </div>
+    </footer>
+
+    <!-- Settings & Customization Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl relative text-left border border-pink-500/30 transform scale-95 transition-transform duration-300" id="modalContent">
+            <!-- Close Button -->
+            <button id="closeModalBtn" class="absolute top-5 right-5 text-pink-300/70 hover:text-white text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
+                    <i class="fa-solid fa-heart-circle-bolt"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Customize Romantic Card</h3>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Subtitle Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-pink-200/80 uppercase tracking-wider mb-1">Top Tagline</label>
+                    <input type="text" id="inputSubtitle" value="For My Dearest" class="w-full bg-white/5 border border-pink-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-pink-400 transition-colors">
+                </div>
+
+                <!-- Main Title Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-pink-200/80 uppercase tracking-wider mb-1">Main Heading</label>
+                    <input type="text" id="inputTitle" value="You Have My Heart" class="w-full bg-white/5 border border-pink-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-pink-400 transition-colors">
+                </div>
+
+                <!-- Custom Note Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-pink-200/80 uppercase tracking-wider mb-1">Personal Love Message</label>
+                    <textarea id="inputMessage" rows="3" class="w-full bg-white/5 border border-pink-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-pink-400 transition-colors resize-none">Every beat, every star, every memory belongs to you.</textarea>
+                </div>
+
+                <!-- Particle Shape Options -->
+                <div>
+                    <label class="block text-xs font-semibold text-pink-200/80 uppercase tracking-wider mb-2">Formation Shape</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-shape="heart" class="shape-opt-btn active px-3 py-2 rounded-xl bg-pink-500/30 border border-pink-400 text-xs font-medium text-white text-center hover:bg-pink-500/40 transition">
+                            <i class="fa-solid fa-heart mr-1.5 text-pink-400"></i> Heart
+                        </button>
+                        <button data-shape="double-heart" class="shape-opt-btn px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-medium text-pink-200/70 text-center hover:bg-white/10 transition">
+                            <i class="fa-solid fa-heart-circle-plus mr-1.5 text-rose-400"></i> Dual Heart
+                        </button>
+                        <button data-shape="infinity" class="shape-opt-btn px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-medium text-pink-200/70 text-center hover:bg-white/10 transition">
+                            <i class="fa-solid fa-infinity mr-1.5 text-red-400"></i> Forever
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Particle Density / Size Slider -->
+                <div>
+                    <div class="flex justify-between text-xs text-pink-200/80 mb-1">
+                        <span class="font-semibold uppercase tracking-wider">Particle Glow Intensity</span>
+                        <span id="glowValText">High</span>
+                    </div>
+                    <input type="range" id="glowSlider" min="1" max="3" value="2" class="w-full accent-pink-500 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Save / Apply -->
+            <div class="mt-6 flex justify-end">
+                <button id="saveSettingsBtn" class="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition">
+                    Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        /**
+         * Romantic Particle Heart Simulation
+         * Generates floating circles with hearts inside that morph into a 2D heart shape.
+         */
+
+        // Canvas Setup
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        // Color Palettes
+        const COLOR_THEMES = [
+            // Classic Romantic Pink & Crimson
+            [
+                '#ff4d6d', '#ff758f', '#ffb3c1', '#ff8fa3', '#c9184a', 
+                '#ffccd5', '#ff4b5c', '#f72585', '#7209b7', '#ff85a1'
+            ],
+            // Rose Gold & Sunrise
+            [
+                '#f4acb7', '#ffcad4', '#b5838d', '#e07a5f', '#f2cc8f', 
+                '#ff9ebb', '#e56b6f', '#6b705c', '#ffe5ec', '#f7aef8'
+            ],
+            // Passionate Red & Violet Glow
+            [
+                '#e63946', '#ff0054', '#9e0059', '#ff5400', '#ffbd00', 
+                '#ff4d6d', '#d90429', '#ef233c', '#ff70a6', '#ff9770'
+            ]
+        ];
+        let currentThemeIdx = 0;
+
+        // Audio System (Web Audio API Synthesizer)
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let ambientOscLoop = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Play subtle romantic note chime when interacting or gathering
+        function playChime(freq = 440, type = 'sine', duration = 1.2) {
+            if (!isAudioPlaying || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                // Envelope
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playRomanticSequence() {
+            if (!isAudioPlaying) return;
+            const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]; // C major 7th arpeggio
+            notes.forEach((freq, idx) => {
+                setTimeout(() => {
+                    playChime(freq, 'sine', 2.0);
+                }, idx * 180);
+            });
+        }
+
+        // State variables
+        let particles = [];
+        let backgroundHearts = [];
+        let mouseTrail = [];
+        let isFormed = false;
+        let targetShape = 'heart'; // 'heart', 'double-heart', 'infinity'
+        let glowIntensity = 2; // 1: Low, 2: Med, 3: High
+
+        const NUM_PARTICLES = window.innerWidth < 640 ? 95 : 135;
+
+        // Particle Class
+        class Particle {
+            constructor(id) {
+                this.id = id;
+                this.resetFloatingState();
+                
+                // Target coordinates for assembled shape
+                this.targetX = width / 2;
+                this.targetY = height / 2;
+
+                // Color & styling
+                this.color = this.getRandomColor();
+                this.radius = Math.random() * 10 + 14; // Circle radius 14px to 24px
+                this.hasInnerHeart = Math.random() < 0.35; // 35% chance to have cute heart icon inside
+                this.innerHeartSize = this.radius * 0.45;
+
+                // Pulse & Floating dynamics
+                this.pulseOffset = Math.random() * Math.PI * 2;
+                this.floatSpeed = Math.random() * 0.02 + 0.01;
+                this.wobbleAmp = Math.random() * 15 + 5;
+            }
+
+            getRandomColor() {
+                const palette = COLOR_THEMES[currentThemeIdx];
+                return palette[Math.floor(Math.random() * palette.length)];
+            }
+
+            resetFloatingState() {
+                // Random position scattered around canvas
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.baseX = this.x;
+                this.baseY = this.y;
+            }
+
+            update(time) {
+                if (isFormed) {
+                    // Smooth spring interpolation towards target heart shape
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+
+                    // Heartbeat pulse calculation
+                    const pulse = Math.sin(time * 0.003 + this.pulseOffset) * 2;
+                    
+                    this.x += dx * 0.05;
+                    this.y += dy * 0.05;
+
+                    // Add subtle floating breath motion even when formed
+                    this.x += Math.cos(time * 0.002 + this.pulseOffset) * 0.3;
+                    this.y += Math.sin(time * 0.002 + this.pulseOffset) * 0.3;
+
+                } else {
+                    // Wandering floating physics
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Screen boundary bounce
+                    if (this.x - this.radius < 0 || this.x + this.radius > width) this.vx *= -1;
+                    if (this.y - this.radius < 0 || this.y + this.radius > height) this.vy *= -1;
+
+                    // Gentle floating sway
+                    this.x += Math.sin(time * 0.001 + this.pulseOffset) * 0.2;
+                    this.y += Math.cos(time * 0.001 + this.pulseOffset) * 0.2;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Outer Glowing Circle
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                
+                if (glowIntensity > 1) {
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = glowIntensity === 3 ? 22 : 12;
+                }
+                ctx.globalAlpha = 0.88;
+                ctx.fill();
+                ctx.restore();
+
+                // Ring Accent outline (matching video aesthetic)
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 3, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1.2;
+                ctx.globalAlpha = 0.35;
+                ctx.stroke();
+                ctx.restore();
+
+                // Inner Mini-Heart Icon inside circle (if enabled)
+                if (this.hasInnerHeart) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.globalAlpha = 0.9;
+                    drawHeartPath(ctx, 0, 0, this.innerHeartSize);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Floating Background Ambient Hearts
+        class BackgroundHeart {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + Math.random() * 100;
+                this.size = Math.random() * 16 + 10;
+                this.speed = Math.random() * 0.8 + 0.3;
+                this.opacity = Math.random() * 0.4 + 0.15;
+                this.color = COLOR_THEMES[currentThemeIdx][Math.floor(Math.random() * 5)];
+                this.wobble = Math.random() * Math.PI * 2;
+            }
+            update(time) {
+                this.y -= this.speed;
+                this.x += Math.sin(time * 0.0015 + this.wobble) * 0.5;
+                if (this.y < -50) {
+                    this.reset();
+                }
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.opacity;
+                drawHeartPath(ctx, 0, 0, this.size);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Helper vector heart drawer
+        function drawHeartPath(ctx, x, y, size) {
+            ctx.beginPath();
+            const topCurveHeight = size * 0.3;
+            ctx.moveTo(x, y + topCurveHeight);
+            // top left curve
+            ctx.bezierCurveTo(
+                x, y, 
+                x - size / 2, y, 
+                x - size / 2, y + topCurveHeight
+            );
+            // bottom left curve
+            ctx.bezierCurveTo(
+                x - size / 2, y + (size + topCurveHeight) / 2, 
+                x, y + size * 0.85, 
+                x, y + size
+            );
+            // bottom right curve
+            ctx.bezierCurveTo(
+                x, y + size * 0.85, 
+                x + size / 2, y + (size + topCurveHeight) / 2, 
+                x + size / 2, y + topCurveHeight
+            );
+            // top right curve
+            ctx.bezierCurveTo(
+                x + size / 2, y, 
+                x, y, 
+                x, y + topCurveHeight
+            );
+            ctx.closePath();
+        }
+
+        // Calculate Target Shape Coordinates
+        function generateTargetPositions(shapeType) {
+            const positions = [];
+            const count = particles.length;
+            const centerX = width / 2;
+            // Center slightly higher on mobile for good layout
+            const centerY = height / 2 - (window.innerWidth < 640 ? 25 : 10);
+
+            if (shapeType === 'heart') {
+                // Scale factor dependent on viewport
+                const scale = Math.min(width, height) / 34;
+
+                for (let i = 0; i < count; i++) {
+                    // Distribute points along heart curve and inside heart body
+                    const isBorder = i < count * 0.55;
+                    let t, rScale;
+
+                    if (isBorder) {
+                        t = (i / (count * 0.55)) * Math.PI * 2;
+                        rScale = 1.0;
+                    } else {
+                        t = Math.random() * Math.PI * 2;
+                        // Fill inside using sqrt distribution for uniform density
+                        rScale = Math.sqrt(Math.random()) * 0.88;
+                    }
+
+                    // Parametric Heart Formula
+                    // x = 16 sin^3(t)
+                    // y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
+                    const hx = 16 * Math.pow(Math.sin(t), 3);
+                    const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+
+                    positions.push({
+                        x: centerX + hx * scale * rScale,
+                        y: centerY + hy * scale * rScale
+                    });
+                }
+            } else if (shapeType === 'double-heart') {
+                // Two overlapping hearts
+                const scale = Math.min(width, height) / 48;
+                for (let i = 0; i < count; i++) {
+                    const offset = i % 2 === 0 ? -scale * 7 : scale * 7;
+                    const t = Math.random() * Math.PI * 2;
+                    const rScale = Math.sqrt(Math.random());
+
+                    const hx = 16 * Math.pow(Math.sin(t), 3);
+                    const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+
+                    positions.push({
+                        x: centerX + offset + hx * scale * rScale,
+                        y: centerY + hy * scale * rScale
+                    });
+                }
+            } else if (shapeType === 'infinity') {
+                // Lemniscate of Bernoulli (Infinity Symbol)
+                const scale = Math.min(width, height) / 3.2;
+                for (let i = 0; i < count; i++) {
+                    const t = (i / count) * Math.PI * 2;
+                    const denom = 1 + Math.sin(t) * Math.sin(t);
+                    const ix = (scale * Math.cos(t)) / denom;
+                    const iy = (scale * Math.sin(t) * Math.cos(t)) / denom;
+
+                    positions.push({
+                        x: centerX + ix + (Math.random() - 0.5) * 15,
+                        y: centerY + iy + (Math.random() - 0.5) * 15
+                    });
+                }
+            }
+
+            return positions;
+        }
+
+        // Initialize particles & background elements
+        function initSimulation() {
+            particles = [];
+            backgroundHearts = [];
+
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                particles.push(new Particle(i));
+            }
+
+            for (let i = 0; i < 20; i++) {
+                backgroundHearts.push(new BackgroundHeart());
+            }
+
+            assignTargetPositions();
+        }
+
+        function assignTargetPositions() {
+            const targets = generateTargetPositions(targetShape);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].targetX = targets[i].x;
+                particles[i].targetY = targets[i].y;
+            }
+        }
+
+        // Particle Burst Ripple Effect on Click
+        function createMouseRipple(clickX, clickY) {
+            playChime(523.25 + Math.random() * 300, 'triangle', 0.8);
+            
+            // Add sparkles to trail
+            for (let i = 0; i < 12; i++) {
+                mouseTrail.push({
+                    x: clickX,
+                    y: clickY,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 6 + 4,
+                    alpha: 1,
+                    color: COLOR_THEMES[currentThemeIdx][Math.floor(Math.random() * 5)]
+                });
+            }
+
+            // Scatter nearby particles slightly for interactive tactile feel
+            particles.forEach(p => {
+                const dist = Math.hypot(p.x - clickX, p.y - clickY);
+                if (dist < 140) {
+                    const angle = Math.atan2(p.y - clickY, p.x - clickX);
+                    const force = (140 - dist) * 0.45;
+                    p.x += Math.cos(angle) * force;
+                    p.y += Math.sin(angle) * force;
+                }
+            });
+        }
+
+        // Main Animation Loop
+        function animate(time = 0) {
+            // Clear with dark ambient glow
+            ctx.fillStyle = '#05050a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Render background floating ambient hearts
+            backgroundHearts.forEach(bgH => {
+                bgH.update(time);
+                bgH.draw(ctx);
+            });
+
+            // Update & Render Main Particles
+            particles.forEach(p => {
+                p.update(time);
+                p.draw(ctx);
+            });
+
+            // Render Mouse Trail / Sparkles
+            for (let i = mouseTrail.length - 1; i >= 0; i--) {
+                const st = mouseTrail[i];
+                st.x += st.vx;
+                st.y += st.vy;
+                st.alpha -= 0.025;
+                if (st.alpha <= 0) {
+                    mouseTrail.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.translate(st.x, st.y);
+                ctx.fillStyle = st.color;
+                ctx.globalAlpha = st.alpha;
+                drawHeartPath(ctx, 0, 0, st.size);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // UI & Action Controllers
+        const actionBtn = document.getElementById('actionBtn');
+        const actionBtnText = document.getElementById('actionBtnText');
+        const actionBtnIcon = document.getElementById('actionBtnIcon');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function toggleAssemblyState() {
+            isFormed = !isFormed;
+
+            if (isFormed) {
+                // Assembling state
+                actionBtnText.textContent = "Disperse Circles";
+                actionBtnIcon.className = "fa-solid fa-arrows-spin";
+                
+                // Show message with delay for elegant transition
+                setTimeout(() => {
+                    messageContainer.classList.remove('opacity-0', 'translate-y-4');
+                    messageContainer.classList.add('opacity-100', 'translate-y-0');
+                }, 400);
+
+                playRomanticSequence();
+            } else {
+                // Floating state
+                actionBtnText.textContent = "Form The Heart";
+                actionBtnIcon.className = "fa-solid fa-wand-magic-sparkles";
+
+                // Scatter floating circles again
+                particles.forEach(p => p.resetFloatingState());
+
+                // Hide text message
+                messageContainer.classList.remove('opacity-100', 'translate-y-0');
+                messageContainer.classList.add('opacity-0', 'translate-y-4');
+
+                playChime(329.63, 'sine', 0.6);
+            }
+        }
+
+        actionBtn.addEventListener('click', toggleAssemblyState);
+
+        // Canvas Click & Touch Handlers
+        canvas.addEventListener('click', (e) => {
+            initAudio();
+            createMouseRipple(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (Math.random() < 0.25) {
+                mouseTrail.push({
+                    x: e.clientX,
+                    y: e.clientY,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5 - 0.5,
+                    size: Math.random() * 5 + 3,
+                    alpha: 0.8,
+                    color: COLOR_THEMES[currentThemeIdx][Math.floor(Math.random() * 5)]
+                });
+            }
+        });
+
+        // Theme Switcher Button
+        const themeBtn = document.getElementById('themeBtn');
+        themeBtn.addEventListener('click', () => {
+            currentThemeIdx = (currentThemeIdx + 1) % COLOR_THEMES.length;
+            particles.forEach(p => {
+                p.color = p.getRandomColor();
+            });
+            backgroundHearts.forEach(bgH => {
+                bgH.color = COLOR_THEMES[currentThemeIdx][Math.floor(Math.random() * 5)];
+            });
+            playChime(659.25, 'sine', 0.4);
+        });
+
+        // Audio Toggle
+        const audioToggleBtn = document.getElementById('audioToggleBtn');
+        const audioIcon = document.getElementById('audioIcon');
+
+        audioToggleBtn.addEventListener('click', () => {
+            isAudioPlaying = !isAudioPlaying;
+            if (isAudioPlaying) {
+                initAudio();
+                audioIcon.className = "fa-solid fa-volume-high text-pink-400";
+                playChime(523.25, 'sine', 0.8);
+            } else {
+                audioIcon.className = "fa-solid fa-volume-xmark";
+            }
+        });
+
+        // Settings Modal Controllers
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const modalContent = document.getElementById('modalContent');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+
+        function openModal() {
+            settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }
+
+        function closeModal() {
+            settingsModal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+
+        settingsBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeModal();
+        });
+
+        // Shape Selection in Modal
+        const shapeButtons = document.querySelectorAll('.shape-opt-btn');
+        shapeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shapeButtons.forEach(b => {
+                    b.classList.remove('bg-pink-500/30', 'border-pink-400', 'text-white');
+                    b.classList.add('bg-white/5', 'border-white/10', 'text-pink-200/70');
+                });
+                btn.classList.remove('bg-white/5', 'border-white/10', 'text-pink-200/70');
+                btn.classList.add('bg-pink-500/30', 'border-pink-400', 'text-white');
+                targetShape = btn.getAttribute('data-shape');
+            });
+        });
+
+        // Apply Custom Message Settings
+        saveSettingsBtn.addEventListener('click', () => {
+            const sub = document.getElementById('inputSubtitle').value.trim();
+            const title = document.getElementById('inputTitle').value.trim();
+            const msg = document.getElementById('inputMessage').value.trim();
+            glowIntensity = parseInt(document.getElementById('glowSlider').value);
+
+            if (sub) document.getElementById('subTitleText').textContent = sub;
+            if (title) document.getElementById('mainTitleText').textContent = title;
+            if (msg) document.getElementById('customMessageText').textContent = msg;
+
+            assignTargetPositions();
+            closeModal();
+            playChime(587.33, 'triangle', 0.5);
+        });
+
+        // Resize Listener
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            assignTargetPositions();
+        });
+
+        // Start App
+        window.onload = () => {
+            initSimulation();
+            animate();
+        };
+    </script>
+</body>
+</html>
